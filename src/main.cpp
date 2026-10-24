@@ -1,4 +1,3 @@
-
 #include <Arduino.h>
 #include "HeaderFiles/Defines.h"
 #include "HeaderFiles/CalculatorEngineClass.h"
@@ -15,6 +14,4 @@ void setup()
 void loop()
 {
     engine.process();
-    delay(200);
-    
 }                  

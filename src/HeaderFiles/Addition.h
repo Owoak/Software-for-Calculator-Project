@@ -3,10 +3,12 @@
 
 class Addition final : public BaseAction{
     public:
-    String returnResult(long int FirstNumber,long int SecondNumber)override{
-        long int result = FirstNumber + SecondNumber;
+    nPair returnResult(const nPair & FirstNumber,const nPair & SecondNumber)override{
+        nPair resulted;
+        double result = (FirstNumber.first).toDouble() + (SecondNumber.first).toDouble();
+        FormatDoubleResult(result,resulted);
 
-        return String(result);
+        return resulted;
     }
 
     

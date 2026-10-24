@@ -5,6 +5,8 @@
 #include "Addition.h"
 #include "Subtraction.h"
 #include "Multiplication.h"
+#include "Division.h"
+
 
 
 
@@ -13,24 +15,26 @@ class Engine final{
         LcdScreen Screen;
         Keypad keypad;
 
-        String equation[3];
+        nPair equation[3] ;
         BaseAction * operation;
 
     public:
-        Engine():Screen(),keypad(),equation(),operation(nullptr){
-            
-        }
+        Engine():Screen(),keypad(),equation({nPair(),nPair(),nPair(String('_'),false)}),operation(nullptr){}
         ~Engine(){clear();}
         Engine(const Engine& other) = delete;
         Engine& operator=(const Engine& other) = delete;
         
         void setupLcd(){
             Screen.setup();
+            printScreen();
         }
         void setupKeypad(){
             keypad.setup();
         }
+
         void process(){
+            bool NeedsReRendering = false;
+
             char keyPressed = keypad.ButtonPressed();
             switch (keyPressed){
                 case '1':
@@ -43,55 +47,52 @@ class Engine final{
                 case '8':
                 case '9':
                 case '0':{
-                    findWhereToWrite() += String(keyPressed);
-                    printScreen();
+                    nPair& currentNumber = findWhereToWrite();
+                    if (isEmpty(currentNumber.first)){
+                        currentNumber = keyPressed ;
+                    }else{
+                        currentNumber += keyPressed;
+                    }
+                    
+                    NeedsReRendering = true;
                     break;
                 }
                 case '=':{
-                    if (isEmpty(equation[0])){
-                        equation[0] = "0";
-                    }
-                    if (isEmpty(equation[1])){
-                        equation[1] = "0";
-                    }
-                    if (operation == nullptr){
-                        String copy = equation[0];
-                        clear();
-                        equation[0] = copy;
-                        printScreen();
-
+                    if (operation == nullptr){ 
+                        // do nothing
                         break;
                     }
                     
-                    String result = operation->returnResult(equation[0].toInt(),equation[1].toInt());
+                    nPair result = operation->returnResult(equation[0],equation[1]); // overflow bug has to ber fixed
                     clear();
                     equation[0] = result;
-                    printScreen();
+                    NeedsReRendering = true;
+                    
                     break;
                 }
                 case '+':{
                     if (operation == nullptr){
                         operation = new Addition();
-                        equation[2] = '+';
-                        printScreen();
+                        equation[2].first = '+';
+                        NeedsReRendering = true;
                     }
                     break;
                 }
                 case '-':{
-                    if (isEmpty(equation[0])){
-                        equation[0] += '-';
-                        printScreen();
+                    if (isEmpty(equation[0].first)){
+                        equation[0].first = '-'; // needs fix (what if only - is entered)
+                        NeedsReRendering = true;
                         break;
                     }
-                    if (operation == nullptr){
+                    else if (operation == nullptr){
                         operation = new Subtraction();
-                        equation[2] = '-';
-                        printScreen();
+                        equation[2].first = '-';
+                        NeedsReRendering = true;
                         break;
                     }
-                    if (isEmpty(equation[1])){
-                        equation[1] += '-';
-                        printScreen();
+                    else if (isEmpty(equation[1].first)){
+                        equation[1].first = '-';
+                        NeedsReRendering = true;
                         break;
                     }
                     break;
@@ -99,17 +100,50 @@ class Engine final{
                 case '*':{
                     if (operation == nullptr){
                         operation = new Multiplication();
-                        equation[2] = '*';
-                        printScreen();
+                        equation[2].first = '*';
+                        NeedsReRendering = true;
                     }
                     break;
                 }
-                case '\b':{
-
-
+                case '/':{
+                    if (operation == nullptr){
+                        operation = new Division();
+                        equation[2] = '/';
+                        NeedsReRendering = true;
+                    }
                     break;
                 }
-            }    
+                case '.':{
+                    nPair& currentNumber = findWhereToWrite();
+                    if (currentNumber.second == false){
+                        currentNumber += '.';
+                        currentNumber.second = true;
+                        NeedsReRendering = true;
+                    }
+                    
+                    break;
+                }
+                
+                // case '\b':{  //needs update
+                //     String & currentNumber = findWhereToWrite();
+                //     if (!isEmpty(currentNumber)){
+                //         currentNumber.remove(currentNumber.length() - 1);
+                //         NeedsReRendering = true;
+                //     }
+                //     break;
+                // }
+                
+                case 'c':{
+                    clear();
+                    printScreen();
+                    delay(700);
+                    break;
+                }
+            }  
+            
+            if (NeedsReRendering){
+                printScreen();  
+            }
         }
 
 
@@ -119,11 +153,11 @@ class Engine final{
                 delete operation;
                 operation = nullptr;
             }
-            equation[0] = String();
-            equation[1] = String();
-            equation[2] = String();
+            equation[0] = nPair();
+            equation[1] = nPair();
+            equation[2] = nPair(String('_'),false);
         }
-        String& findWhereToWrite(){
+        nPair& findWhereToWrite(){
             if (operation == nullptr){
                 return equation[0];
             }
@@ -132,6 +166,6 @@ class Engine final{
             }
         }
         void printScreen() { 
-            Screen.printToLcd(equation[0],equation[1],equation[2]);
+            Screen.printToLcd(equation[0].first,equation[1].first,equation[2].first);
         }
 };
